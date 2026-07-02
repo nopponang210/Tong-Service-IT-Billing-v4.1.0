@@ -1,0 +1,33 @@
+{
+  "name": "tong-service-it-billing-backend",
+  "version": "4.1.0",
+  "private": true,
+  "description": "Tong Service IT Billing v4 REST API with guided document workflow",
+  "main": "server.js",
+  "engines": {
+    "node": "22.x",
+    "npm": "10.x"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "db:migrate": "node scripts/migrate.js",
+    "db:seed": "node scripts/seed-demo.js",
+    "create-admin": "node scripts/create-admin.js",
+    "test": "node --test",
+    "db:check": "node scripts/check-schema.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "decimal.js": "^10.6.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.2.0",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.2.0",
+    "pg": "^8.21.0",
+    "zod": "^4.4.3"
+  }
+}

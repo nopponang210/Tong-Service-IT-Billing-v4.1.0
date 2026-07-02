@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>พิมพ์เอกสาร</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/print.css">
+</head>
+<body>
+  <div class="print-toolbar"><label>รูปแบบสี <select id="print-mode-select"><option value="color">สีอ่อนตามประเภทเอกสาร</option><option value="mono">ขาวดำ</option></select></label><button id="print-button" type="button">พิมพ์ / บันทึก PDF</button><button onclick="window.close()">ปิด</button></div>
+  <main id="print-document" class="a4-sheet"><p>กำลังโหลดเอกสาร...</p></main>
+  <script src="./config.js"></script>
+  <script type="module" src="./js/print.js"></script>
+</body>
+</html>
