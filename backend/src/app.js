@@ -2,7 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+
 const env = require('./config/env');
+
 const authRoutes = require('./routes/auth.routes');
 const customerRoutes = require('./routes/customer.routes');
 const productRoutes = require('./routes/product.routes');
@@ -13,63 +15,139 @@ const settingsRoutes = require('./routes/settings.routes');
 const userRoutes = require('./routes/user.routes');
 const backupRoutes = require('./routes/backup.routes');
 const healthRoutes = require('./routes/health.routes');
-const { notFound, errorHandler } = require('./middleware/error-handler');
+
+const {
+  notFound,
+  errorHandler,
+} = require('./middleware/error-handler');
 
 const app = express();
-if (env.nodeEnv === 'production') app.set('trust proxy', 1);
-app.disable('x-powered-by');
-app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
-function originAllowed(origin) {
-    if (!origin) return true;
-    return env.corsOrigins.some((allowed) => {
-        if (allowed === origin) return true;
-        if (!allowed.includes('*')) return false;
-        try {
-            const allowedUrl = new URL(allowed.replace('*.', 'placeholder.'));
-            const originUrl = new URL(origin);
-            const suffix = allowedUrl.hostname.replace(/^placeholder\./, '');
-            return originUrl.protocol === allowedUrl.protocol
-                && originUrl.hostname.endsWith(`.${suffix}`);
-        } catch {
-            return false;
-        }
-    });
+/*
+ * Render ใช้ Proxy อยู่ด้านหน้า Express
+ * ต้องตั้ง trust proxy เพื่อให้ Rate Limit อ่าน IP ได้ถูกต้อง
+ */
+if (env.nodeEnv === 'production') {
+  app.set('trust proxy', 1);
 }
 
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
+app.disable('x-powered-by');
 
-dotenv.config({ override: true });
+/*
+ * Security headers
+ */
+app.use(
+  helmet({
+    crossOriginResourcePolicy: {
+      policy: 'cross-origin',
+    },
+  })
+);
 
-const app = express();
+/*
+ * ตรวจสอบว่า Origin ได้รับอนุญาตหรือไม่
+ *
+ * รองรับค่าปกติ:
+ * https://your-frontend.onrender.com
+ *
+ * และรองรับ Wildcard:
+ * https://*.onrender.com
+ */
+function originAllowed(origin) {
+  // อนุญาต Request ที่ไม่มี Origin เช่น Render health check,
+  // Postman, PowerShell หรือการเรียกจาก Backend
+  if (!origin) {
+    return true;
+  }
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-  process.env.FRONTEND_URL,
-].filter(Boolean);
+  return env.corsOrigins.some((allowedOrigin) => {
+    if (allowedOrigin === origin) {
+      return true;
+    }
 
+    if (!allowedOrigin.includes('*')) {
+      return false;
+    }
+
+    try {
+      const allowedUrl = new URL(
+        allowedOrigin.replace('*.', 'placeholder.')
+      );
+
+      const originUrl = new URL(origin);
+
+      const domainSuffix = allowedUrl.hostname.replace(
+        /^placeholder\./,
+        ''
+      );
+
+      return (
+        originUrl.protocol === allowedUrl.protocol &&
+        originUrl.hostname.endsWith(`.${domainSuffix}`)
+      );
+    } catch {
+      return false;
+    }
+  });
+}
+
+/*
+ * CORS
+ */
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (originAllowed(origin)) {
         return callback(null, true);
       }
 
-      console.error("Blocked CORS origin:", origin);
-      return callback(new Error("Origin is not allowed by CORS"));
+      console.error(`Blocked CORS origin: ${origin}`);
+
+      return callback(
+        new Error('Origin is not allowed by CORS')
+      );
     },
+
     credentials: true,
   })
 );
 
+/*
+ * Body parser
+ */
+app.use(
+  express.json({
+    limit: '3mb',
+    strict: true,
+  })
+);
 
-app.use(express.json({ limit: '3mb', strict: true }));
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 700, standardHeaders: 'draft-8', legacyHeaders: false }));
+/*
+ * Rate limit
+ */
+app.use(
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 700,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+  })
+);
 
-app.get('/', (_req, res) => res.json({ name: 'Tong Service IT Billing API', version: '4.0.0' }));
+/*
+ * API information
+ */
+app.get('/', (_req, res) => {
+  res.json({
+    name: 'Tong Service IT Billing API',
+    version: '4.1.0',
+    status: 'running',
+  });
+});
+
+/*
+ * API Routes
+ */
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
@@ -80,6 +158,11 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/backup', backupRoutes);
+
+/*
+ * 404 และ Error handler
+ * ต้องอยู่หลัง Routes ทั้งหมด
+ */
 app.use(notFound);
 app.use(errorHandler);
 
