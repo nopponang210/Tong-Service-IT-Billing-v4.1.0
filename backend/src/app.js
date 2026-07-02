@@ -37,13 +37,32 @@ function originAllowed(origin) {
     });
 }
 
-app.use(cors({
+import cors from "cors";
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
+app.use(
+  cors({
     origin(origin, callback) {
-        if (originAllowed(origin)) return callback(null, true);
-        return callback(new Error('Origin is not allowed by CORS'));
+      // อนุญาต request ที่ไม่มี Origin เช่น Postman หรือ health check
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      console.error("Blocked CORS origin:", origin);
+      return callback(new Error("Origin is not allowed by CORS"));
     },
-    credentials: false
-}));
+    credentials: true,
+  })
+);
 app.use(express.json({ limit: '3mb', strict: true }));
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 700, standardHeaders: 'draft-8', legacyHeaders: false }));
 
