@@ -1,8 +1,0 @@
-{
-  "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "tongserviceit",
-  "compatibility_date": "2026-07-01",
-  "assets": {
-    "directory": "./dist"
-  }
-}
