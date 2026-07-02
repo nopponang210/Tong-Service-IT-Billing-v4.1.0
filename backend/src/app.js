@@ -37,7 +37,13 @@ function originAllowed(origin) {
     });
 }
 
+import express from "express";
 import cors from "cors";
+import dotenv from "dotenv";
+
+dotenv.config({ override: true });
+
+const app = express();
 
 const allowedOrigins = [
   "http://localhost:5173",
@@ -48,12 +54,7 @@ const allowedOrigins = [
 app.use(
   cors({
     origin(origin, callback) {
-      // อนุญาต request ที่ไม่มี Origin เช่น Postman หรือ health check
-      if (!origin) {
-        return callback(null, true);
-      }
-
-      if (allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
 
@@ -63,6 +64,8 @@ app.use(
     credentials: true,
   })
 );
+
+
 app.use(express.json({ limit: '3mb', strict: true }));
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 700, standardHeaders: 'draft-8', legacyHeaders: false }));
 
